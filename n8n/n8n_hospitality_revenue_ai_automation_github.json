@@ -1,0 +1,452 @@
+{
+  "name": "Hospitality Revenue AI Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        128,
+        0
+      ],
+      "id": "45154ec0-ae03-4ae1-9ee4-45b3def91664",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n\n    /* =========================\n       OVERALL KPIs\n       ========================= */\n\n    COUNT(*) AS total_bookings,\n\n    ROUND(SUM(FINAL_REVENUE), 2) AS total_revenue,\n\n    ROUND(AVG(ADR), 2) AS average_adr,\n\n    ROUND(\n        SUM(BOOKING_STATUS = 'cancelled') * 100.0 / COUNT(*),\n        2\n    ) AS cancellation_rate,\n\n\n    /* =========================\n       HOTEL PERFORMANCE\n       ========================= */\n\n    SUM(HOTEL = 'City Hotel') AS city_bookings,\n\n    ROUND(\n        SUM(CASE\n            WHEN HOTEL = 'City Hotel' THEN FINAL_REVENUE\n            ELSE 0\n        END), 2\n    ) AS city_revenue,\n\n    ROUND(\n        AVG(CASE\n            WHEN HOTEL = 'City Hotel' THEN ADR\n        END), 2\n    ) AS city_average_adr,\n\n    ROUND(\n        SUM(CASE\n            WHEN HOTEL = 'City Hotel'\n            AND BOOKING_STATUS = 'cancelled'\n            THEN 1 ELSE 0\n        END) * 100.0\n        / SUM(HOTEL = 'City Hotel'),\n        2\n    ) AS city_cancellation_rate,\n\n\n    SUM(HOTEL = 'Resort Hotel') AS resort_bookings,\n\n    ROUND(\n        SUM(CASE\n            WHEN HOTEL = 'Resort Hotel' THEN FINAL_REVENUE\n            ELSE 0\n        END), 2\n    ) AS resort_revenue,\n\n    ROUND(\n        AVG(CASE\n            WHEN HOTEL = 'Resort Hotel' THEN ADR\n        END), 2\n    ) AS resort_average_adr,\n\n    ROUND(\n        SUM(CASE\n            WHEN HOTEL = 'Resort Hotel'\n            AND BOOKING_STATUS = 'cancelled'\n            THEN 1 ELSE 0\n        END) * 100.0\n        / SUM(HOTEL = 'Resort Hotel'),\n        2\n    ) AS resort_cancellation_rate,\n\n\n    /* =========================\n       CUSTOMER SEGMENT\n       ========================= */\n\n    SUM(CUSTOMER_SEGMENT = 'Business') AS business_bookings,\n\n    ROUND(\n        SUM(CASE\n            WHEN CUSTOMER_SEGMENT = 'Business'\n            THEN FINAL_REVENUE ELSE 0\n        END), 2\n    ) AS business_revenue,\n\n    SUM(CUSTOMER_SEGMENT = 'Individual') AS individual_bookings,\n\n    ROUND(\n        SUM(CASE\n            WHEN CUSTOMER_SEGMENT = 'Individual'\n            THEN FINAL_REVENUE ELSE 0\n        END), 2\n    ) AS individual_revenue,\n\n    SUM(CUSTOMER_SEGMENT = 'Group') AS group_bookings,\n\n    ROUND(\n        SUM(CASE\n            WHEN CUSTOMER_SEGMENT = 'Group'\n            THEN FINAL_REVENUE ELSE 0\n        END), 2\n    ) AS group_revenue,\n\n\n    /* =========================\n       BOOKING PLATFORM\n       ========================= */\n\n    SUM(BOOKING_PLATFORM = 'Mobile App') AS mobile_app_bookings,\n\n    ROUND(\n        SUM(CASE\n            WHEN BOOKING_PLATFORM = 'Mobile App'\n            THEN FINAL_REVENUE ELSE 0\n        END), 2\n    ) AS mobile_app_revenue,\n\n    SUM(BOOKING_PLATFORM = 'Website') AS website_bookings,\n\n    ROUND(\n        SUM(CASE\n            WHEN BOOKING_PLATFORM = 'Website'\n            THEN FINAL_REVENUE ELSE 0\n        END), 2\n    ) AS website_revenue,\n\n    SUM(BOOKING_PLATFORM = 'Partner Platform') AS partner_platform_bookings,\n\n    ROUND(\n        SUM(CASE\n            WHEN BOOKING_PLATFORM = 'Partner Platform'\n            THEN FINAL_REVENUE ELSE 0\n        END), 2\n    ) AS partner_platform_revenue,\n\n\n    /* =========================\n       LEAD TIME CANCELLATION\n       ========================= */\n\n    ROUND(\n        SUM(CASE\n            WHEN LEAD_TIME BETWEEN 0 AND 7\n            AND BOOKING_STATUS = 'cancelled'\n            THEN 1 ELSE 0\n        END) * 100.0\n        / SUM(LEAD_TIME BETWEEN 0 AND 7),\n        2\n    ) AS cancellation_0_7_days,\n\n    ROUND(\n        SUM(CASE\n            WHEN LEAD_TIME BETWEEN 8 AND 30\n            AND BOOKING_STATUS = 'cancelled'\n            THEN 1 ELSE 0\n        END) * 100.0\n        / SUM(LEAD_TIME BETWEEN 8 AND 30),\n        2\n    ) AS cancellation_8_30_days,\n\n    ROUND(\n        SUM(CASE\n            WHEN LEAD_TIME BETWEEN 31 AND 90\n            AND BOOKING_STATUS = 'cancelled'\n            THEN 1 ELSE 0\n        END) * 100.0\n        / SUM(LEAD_TIME BETWEEN 31 AND 90),\n        2\n    ) AS cancellation_31_90_days,\n\n    ROUND(\n        SUM(CASE\n            WHEN LEAD_TIME BETWEEN 91 AND 180\n            AND BOOKING_STATUS = 'cancelled'\n            THEN 1 ELSE 0\n        END) * 100.0\n        / SUM(LEAD_TIME BETWEEN 91 AND 180),\n        2\n    ) AS cancellation_91_180_days,\n\n    ROUND(\n        SUM(CASE\n            WHEN LEAD_TIME > 180\n            AND BOOKING_STATUS = 'cancelled'\n            THEN 1 ELSE 0\n        END) * 100.0\n        / SUM(LEAD_TIME > 180),\n        2\n    ) AS cancellation_180_plus_days,\n\n\n    /* =========================\n       REPEAT GUEST\n       ========================= */\n\n    SUM(IS_REPEATED_GUEST = 1) AS repeat_guest_bookings,\n\n    SUM(IS_REPEATED_GUEST = 0) AS new_guest_bookings,\n\n    ROUND(\n        SUM(CASE\n            WHEN IS_REPEATED_GUEST = 1\n            AND BOOKING_STATUS = 'cancelled'\n            THEN 1 ELSE 0\n        END) * 100.0\n        / SUM(IS_REPEATED_GUEST = 1),\n        2\n    ) AS repeat_guest_cancellation_rate,\n\n    ROUND(\n        SUM(CASE\n            WHEN IS_REPEATED_GUEST = 0\n            AND BOOKING_STATUS = 'cancelled'\n            THEN 1 ELSE 0\n        END) * 100.0\n        / SUM(IS_REPEATED_GUEST = 0),\n        2\n    ) AS new_guest_cancellation_rate,\n\n\n    /* =========================\n       DISCOUNT IMPACT\n       ========================= */\n\n    ROUND(\n        SUM(CASE\n            WHEN DISCOUNT_PERCENTAGE = 0\n            THEN FINAL_REVENUE ELSE 0\n        END), 2\n    ) AS revenue_0_discount,\n\n    ROUND(\n        SUM(CASE\n            WHEN DISCOUNT_PERCENTAGE = 5\n            THEN FINAL_REVENUE ELSE 0\n        END), 2\n    ) AS revenue_5_discount,\n\n    ROUND(\n        SUM(CASE\n            WHEN DISCOUNT_PERCENTAGE = 10\n            THEN FINAL_REVENUE ELSE 0\n        END), 2\n    ) AS revenue_10_discount,\n\n    ROUND(\n        SUM(CASE\n            WHEN DISCOUNT_PERCENTAGE = 15\n            THEN FINAL_REVENUE ELSE 0\n        END), 2\n    ) AS revenue_15_discount,\n\n    ROUND(\n        SUM(CASE\n            WHEN DISCOUNT_PERCENTAGE = 20\n            THEN FINAL_REVENUE ELSE 0\n        END), 2\n    ) AS revenue_20_discount\n\nFROM hospitality_revenue_sql;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        448,
+        0
+      ],
+      "id": "2156c7b6-30c0-421d-a0d5-b536cf91330a",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "mySql": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a Senior Hospitality Revenue Analyst.\n\nYou will receive structured hotel analytics from a MySQL query.\n\nDATA:\n{{ JSON.stringify($json, null, 2) }}\n\nYour task is to create a CLEAN and CONCISE management dashboard summary.\n\nUse EXACTLY this structure:\nrevenue is in rupees\n\n==================================================\nHOSPITALITY REVENUE ANALYTICS — AI INSIGHT REPORT\n==================================================\n\nEXECUTIVE SUMMARY\nWrite 2-3 short sentences summarizing the most important findings.\n\n--------------------------------------------------\n1. OVERALL KPIs\n--------------------------------------------------\n• Total Bookings:\n• Total Revenue:\n• Average ADR:\n• Cancellation Rate:\n\n--------------------------------------------------\n2. HOTEL PERFORMANCE\n--------------------------------------------------\nCity Hotel:\n• Bookings:\n• Revenue:\n• Average ADR:\n• Cancellation Rate:\n\nResort Hotel:\n• Bookings:\n• Revenue:\n• Average ADR:\n• Cancellation Rate:\n\n--------------------------------------------------\n3. CUSTOMER SEGMENTS\n--------------------------------------------------\nBusiness:\n• Bookings:\n• Revenue:\n\nIndividual:\n• Bookings:\n• Revenue:\n\nGroup:\n• Bookings:\n• Revenue:\n\n--------------------------------------------------\n4. BOOKING PLATFORM\n--------------------------------------------------\nMobile App:\n• Bookings:\n• Revenue:\n\nWebsite:\n• Bookings:\n• Revenue:\n\nPartner Platform:\n• Bookings:\n• Revenue:\n\n--------------------------------------------------\n5. CANCELLATION & LEAD TIME\n--------------------------------------------------\n• 0–7 days:\n• 8–30 days:\n• 31–90 days:\n• 91–180 days:\n• 180+ days:\n\nRepeat Guests:\n• Bookings:\n• Cancellation Rate:\n\nNew Guests:\n• Bookings:\n• Cancellation Rate:\n\n--------------------------------------------------\n6. DISCOUNT ANALYSIS\n--------------------------------------------------\n• 0% Discount Revenue:\n• 5% Discount Revenue:\n• 10% Discount Revenue:\n• 15% Discount Revenue:\n• 20% Discount Revenue:\n\n--------------------------------------------------\n7. KEY INSIGHTS\n--------------------------------------------------\nGive ONLY 5 concise bullet points.\n\nEach insight must be directly supported by the supplied data.\n\n--------------------------------------------------\n8. RECOMMENDED ACTIONS\n--------------------------------------------------\nGive ONLY 5 concise bullet points.\n\nRecommendations must be connected to the observed data.\n\n==================================================\n\nSTRICT RULES:\n1. Use ONLY the supplied SQL data.\n2. Do not invent numbers.\n3. Do not calculate new metrics.\n4. Do not use external benchmarks.\n5. Do not claim causation.\n6. Do not call something \"high\", \"low\", \"good\", or \"poor\" without a benchmark.\n7. Use \"observed association\" when describing relationships.\n8. Keep every bullet to ONE or TWO sentences maximum.\n9. Do not repeat the same insight in multiple sections.\n10. Do not add extra sections.\n11. Do not use tables.\n12. Do not write a long narrative.\n13. Prioritize clarity and readability.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        672,
+        0
+      ],
+      "id": "b2dd65e2-331f-4b8e-b802-62a8e493b839",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        208
+      ],
+      "id": "49ff8b88-22f4-424f-904c-bd74b08630e5",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        160,
+        176
+      ],
+      "id": "91b0cd6e-6a8c-4427-9008-16d47b547246",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_EMAIL@example.com",
+        "subject": "Daily Hospitality Revenue Analytics Report",
+        "message": "={{ $json.output\n  .replace(/\\\\n/g, '<br>')\n  .replace(/={5,}/g, '<hr>')\n  .replace(/-{5,}/g, '<hr>')\n  .replace(/•/g, '<br>•')\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "3fc493ba-d0a8-4b2b-bc56-c6406d7f4424",
+      "name": "Send a message",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_DRIVE_FOLDER_ID",
+          "mode": "list",
+          "cachedResultName": "Hospitality Data Updates",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/YOUR_GOOGLE_DRIVE_FOLDER_ID"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -240
+      ],
+      "id": "9c144579-b696-4f4d-aacb-1bf773628c4c",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $node[\"Google Drive Trigger\"].json[\"id\"] }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        608,
+        -256
+      ],
+      "id": "8b4de625-e46e-4835-8841-cc514488e6ec",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        784,
+        -256
+      ],
+      "id": "7ea410ac-77b4-4575-af95-2f96715cd21c",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nif (items.length === 0) {\n  throw new Error(\"CSV contains no records.\");\n}\n\n// Remove PAYMENT_METHOD and rename FINAL REVENUE\n// to match the existing MySQL column FINAL_REVENUE.\n\nconst output = items.map(item => {\n  const row = { ...item.json };\n\n  // Remove the duplicate payment-method column\n  delete row.PAYMENT_METHOD;\n  delete row.IS_CANCELED;\n\n  // Map CSV column name to MySQL column name\n  if (\"FINAL REVENUE\" in row) {\n    row.FINAL_REVENUE = row[\"FINAL REVENUE\"];\n    delete row[\"FINAL REVENUE\"];\n  }\n\n  return {\n    json: row\n  };\n});\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        -256
+      ],
+      "id": "6378cfb0-2efa-4c04-bda6-9c35f3f96a73",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "hospitality_revenue_sql",
+          "mode": "list",
+          "cachedResultName": "hospitality_revenue_sql"
+        },
+        "options": {
+          "skipOnConflict": false
+        }
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1152,
+        -256
+      ],
+      "id": "bf418647-bd55-4b7c-9525-6034d3f8cb9d",
+      "name": "Insert rows in a table",
+      "credentials": {
+        "mySql": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COUNT(*) AS file_exists\nFROM processed_files\nWHERE file_id = '{{ $json[\"id\"] }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        32,
+        -240
+      ],
+      "id": "d14d2417-83dc-4a98-b285-0a5966a2758b",
+      "name": "Execute a SQL query1",
+      "credentials": {
+        "mySql": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1914d58c-f783-4e28-830a-e6ecc0d95b58",
+              "leftValue": "={{ $json.file_exists }}",
+              "rightValue": "0",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        192,
+        -240
+      ],
+      "id": "46581412-fa2a-44e9-9a84-2f847584f7d4",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO processed_files (file_id, file_name)\nVALUES (\n    '{{ $node[\"Google Drive Trigger\"].json[\"id\"] }}',\n    '{{ $node[\"Google Drive Trigger\"].json[\"name\"] }}'\n);\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        400,
+        -256
+      ],
+      "id": "12fae781-1f20-4195-ae08-fd26f5521ab1",
+      "name": "Mark File Processing",
+      "credentials": {
+        "mySql": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "YOUR_CREDENTIAL"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert rows in a table": {
+      "main": [
+        []
+      ]
+    },
+    "Execute a SQL query1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Mark File Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark File Processing": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Kolkata",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}
